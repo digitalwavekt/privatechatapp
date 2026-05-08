@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-  FaTachometerAlt, FaUserClock,
+  FaTachometerAlt, FaUsers, FaUserClock,
   FaHistory, FaSignOutAlt, FaShieldAlt
 } from 'react-icons/fa';
 import { useAuthStore } from '../context/authStore';

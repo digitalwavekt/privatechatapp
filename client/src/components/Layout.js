@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
-  FaPhone, FaUsers, FaAddressBook,
+  FaComments, FaPhone, FaUsers, FaAddressBook,
   FaUser, FaCog, FaSignOutAlt, FaSearch
 } from 'react-icons/fa';
 import { useAuthStore } from '../context/authStore';

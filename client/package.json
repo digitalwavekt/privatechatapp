@@ -23,11 +23,12 @@
     "framer-motion": "^10.16.4",
     "tailwindcss": "^3.3.3",
     "autoprefixer": "^10.4.15",
-    "postcss": "^8.4.29"
+    "postcss": "^8.4.29",
+    "cross-env": "^7.0.3"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "cross-env CI=false react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -51,6 +52,5 @@
   },
   "devDependencies": {
     "react-scripts": "5.0.1"
-  },
-  "proxy": "http://localhost:5000"
+  }
 }
