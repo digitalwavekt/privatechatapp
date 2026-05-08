@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-pvchat-black text-pvchat-white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .admin-card {
+    @apply bg-pvchat-card rounded-xl border border-pvchat-gray-dark/30 p-6;
+  }
+
+  .admin-btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+
+  .admin-btn-primary {
+    @apply admin-btn bg-pvchat-blue text-white hover:bg-pvchat-blue-dark;
+  }
+
+  .admin-btn-danger {
+    @apply admin-btn bg-pvchat-danger text-white hover:bg-red-600;
+  }
+
+  .admin-btn-success {
+    @apply admin-btn bg-pvchat-success text-white hover:bg-emerald-600;
+  }
+
+  .admin-input {
+    @apply w-full bg-pvchat-dark border border-pvchat-gray-dark rounded-lg px-4 py-2 
+           text-white placeholder-gray-500 focus:outline-none focus:border-pvchat-blue 
+           focus:ring-1 focus:ring-pvchat-blue transition-all;
+  }
+
+  .admin-table {
+    @apply w-full text-left;
+  }
+
+  .admin-table th {
+    @apply px-4 py-3 text-xs font-medium text-pvchat-gray uppercase tracking-wider 
+           border-b border-pvchat-gray-dark/30;
+  }
+
+  .admin-table td {
+    @apply px-4 py-3 border-b border-pvchat-gray-dark/20 text-sm text-white;
+  }
+
+  .admin-table tr:hover {
+    @apply bg-pvchat-dark/50;
+  }
+
+  .status-badge {
+    @apply inline-flex px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .status-pending {
+    @apply status-badge bg-yellow-500/20 text-yellow-400;
+  }
+
+  .status-approved {
+    @apply status-badge bg-green-500/20 text-green-400;
+  }
+
+  .status-blocked {
+    @apply status-badge bg-red-500/20 text-red-400;
+  }
+
+  .status-deleted {
+    @apply status-badge bg-gray-500/20 text-gray-400;
+  }
+}
