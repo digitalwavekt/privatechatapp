@@ -16,6 +16,7 @@ const callRoutes = require('./routes/call');
 const mediaRoutes = require('./routes/media');
 
 const { socketHandler } = require('./socket/handler');
+const { initializeAdmin } = require('./utils/initializeAdmin');
 
 const app = express();
 const server = http.createServer(app);
@@ -146,7 +147,13 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`PVChat server running on port ${PORT}`);
   console.log('Allowed origins:', allowedOrigins);
+
+  try {
+    await initializeAdmin();
+  } catch (error) {
+    console.error('Admin initialization failed:', error.message);
+  }
 });

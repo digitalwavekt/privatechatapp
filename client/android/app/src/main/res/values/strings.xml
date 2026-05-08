@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PVChat</string>
+    <string name="title_activity_main">PVChat</string>
+    <string name="package_name">com.digitalwave.pvchat</string>
+    <string name="custom_url_scheme">com.digitalwave.pvchat</string>
+</resources>

@@ -1,0 +1,62 @@
+buildscript {
+    ext {
+        minSdkVersion = 24
+        compileSdkVersion = 35
+targetSdkVersion = 35
+        kotlin_version = '1.8.22'
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core:1.12.0'
+        force 'androidx.core:core-ktx:1.12.0'
+        force 'androidx.activity:activity:1.8.2'
+    }
+}
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy {
+            force 'androidx.core:core:1.12.0'
+            force 'androidx.core:core-ktx:1.12.0'
+            force 'androidx.activity:activity:1.8.2'
+
+            eachDependency { details ->
+                if (details.requested.group == 'androidx.core' &&
+                    details.requested.name == 'core') {
+                    details.useVersion '1.12.0'
+                }
+
+                if (details.requested.group == 'androidx.core' &&
+                    details.requested.name == 'core-ktx') {
+                    details.useVersion '1.12.0'
+                }
+
+                if (details.requested.group == 'androidx.activity' &&
+                    details.requested.name == 'activity') {
+                    details.useVersion '1.8.2'
+                }
+            }
+        }
+    }
+}
