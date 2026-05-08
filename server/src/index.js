@@ -23,10 +23,16 @@ const server = http.createServer(app);
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
-  ...(process.env.CORS_ORIGINS || '').split(',')
-].filter(Boolean);
+  ...(process.env.CORS_ORIGINS || '').split(','),
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:5174'
+]
+  .map(origin => origin && origin.trim())
+  .filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
@@ -34,23 +40,68 @@ app.use(cors({
       return callback(null, true);
     }
 
+    console.log('CORS blocked:', origin);
     return callback(new Error(`CORS blocked: ${origin}`));
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
 
-app.set('io', io);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-app.use(helmet());
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false
+  })
+);
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(morgan('dev'));
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
+
+app.set('io', io);
+
+io.on('connection', socket => {
+  console.log('Socket connected:', socket.id);
+
+  socket.on('join', userId => {
+    if (!userId) return;
+    socket.join(`user:${userId}`);
+    console.log(`User joined room: user:${userId}`);
+  });
+
+  socket.on('join_user', userId => {
+    if (!userId) return;
+    socket.join(`user:${userId}`);
+    console.log(`User joined room: user:${userId}`);
+  });
+
+  socket.on('join_admin', () => {
+    socket.join('admin');
+    console.log('Admin joined admin room');
+  });
+
+  socket.on('disconnect', reason => {
+    console.log('Socket disconnected:', socket.id, reason);
+  });
+});
+
+if (typeof socketHandler === 'function') {
+  socketHandler(io);
+}
 
 app.get('/', (req, res) => {
   res.json({
@@ -63,7 +114,9 @@ app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'PVChat API running',
-    time: new Date().toISOString()
+    time: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    allowedOrigins
   });
 });
 
@@ -74,10 +127,6 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/calls', callRoutes);
 app.use('/api/media', mediaRoutes);
-
-if (typeof socketHandler === 'function') {
-  socketHandler(io);
-}
 
 app.use((req, res) => {
   res.status(404).json({
@@ -99,4 +148,5 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`PVChat server running on port ${PORT}`);
+  console.log('Allowed origins:', allowedOrigins);
 });
