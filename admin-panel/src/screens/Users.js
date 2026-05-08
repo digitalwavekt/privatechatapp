@@ -18,11 +18,7 @@ const Users = () => {
   const [deleteReason, setDeleteReason] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const params = {};
       if (statusFilter !== 'all') params.status = statusFilter;
@@ -40,7 +36,11 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   const handleSearch = (e) => {
     e.preventDefault();

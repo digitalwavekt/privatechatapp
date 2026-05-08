@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaUser, FaImage, FaVideo, FaMicrophone, FaMapMarkerAlt, FaFile } from 'react-icons/fa';
 import { format } from 'date-fns';
@@ -12,11 +12,7 @@ const UserChats = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadUserChats();
-  }, [loadUserChatsId]);
-
-  const loadUserChats = async () => {
+  const loadUserChats = useCallback(async () => {
     try {
       const [messagesRes, userRes] = await Promise.all([
         api.get(`/admin/user-chats/${userId}`),
@@ -35,7 +31,11 @@ const UserChats = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserChats();
+  }, [loadUserChats]);
 
   const getMessageIcon = (type) => {
     switch (type) {
