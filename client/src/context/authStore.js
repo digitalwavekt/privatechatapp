@@ -20,7 +20,7 @@ export const useAuthStore = create(
 
       logout: () => {
         set({ user: null, token: null, refreshToken: null });
-        localStorage.clear();
+        localStorage.removeItem('pvchat-auth');
       },
 
       getToken: () => get().token,

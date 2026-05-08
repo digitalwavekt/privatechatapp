@@ -16,7 +16,12 @@ const PendingApprovals = () => {
   const loadPendingUsers = async () => {
     try {
       const { data } = await api.get('/admin/pending-users');
-      setPendingUsers(data);
+
+      const usersList = Array.isArray(data)
+        ? data
+        : data.users || [];
+
+      setPendingUsers(usersList);
     } catch (error) {
       toast.error('Failed to load pending users');
     } finally {
@@ -141,9 +146,9 @@ const PendingApprovals = () => {
                 <div className="mb-6">
                   <label className="block text-sm text-pvchat-gray mb-2">Live Photo</label>
                   <div className="rounded-xl overflow-hidden bg-pvchat-dark">
-                    <img 
-                      src={selectedUser.livePhoto} 
-                      alt="Live verification" 
+                    <img
+                      src={selectedUser.livePhoto}
+                      alt="Live verification"
                       className="w-full h-64 object-cover"
                     />
                   </div>

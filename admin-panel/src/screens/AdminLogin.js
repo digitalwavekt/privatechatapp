@@ -10,29 +10,47 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
-      const { data } = await api.post('/auth/login', {
+      setLoading(true);
+
+      const { data } = await api.post('/admin/login', {
         email,
         password
       });
 
-      if (data.user.role !== 'admin') {
+      console.log('ADMIN LOGIN RESPONSE:', data);
+
+      const token = data.token || data.accessToken;
+
+      if (!data.user || data.user.role !== 'admin') {
         toast.error('Admin access only');
         return;
       }
 
-      setAuth(data.user, data.accessToken);
+      if (!token) {
+        toast.error('Token missing from server response');
+        return;
+      }
+
+      setAuth(data.user, token);
+
       toast.success('Welcome Admin!');
       navigate('/');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('ADMIN LOGIN ERROR:', error.response?.data || error.message);
+
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed'
+      );
     } finally {
       setLoading(false);
     }
@@ -45,13 +63,20 @@ const AdminLogin = () => {
           <div className="w-20 h-20 bg-pvchat-blue rounded-2xl mx-auto mb-4 flex items-center justify-center">
             <span className="text-3xl font-bold text-white">A</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
-          <p className="text-pvchat-gray">PVChat Administration</p>
+
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Admin Panel
+          </h1>
+
+          <p className="text-pvchat-gray">
+            PVChat Administration
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-pvchat-gray" />
+
             <input
               type="email"
               placeholder="Admin Email"
@@ -64,6 +89,7 @@ const AdminLogin = () => {
 
           <div className="relative">
             <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-pvchat-gray" />
+
             <input
               type={showPassword ? 'text' : 'password'}
               placeholder="Password"
@@ -72,9 +98,10 @@ const AdminLogin = () => {
               className="admin-input pl-12 pr-12"
               required
             />
+
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-pvchat-gray"
             >
               {showPassword ? <FaEyeSlash /> : <FaEye />}

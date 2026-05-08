@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEye, FaBan, FaTrash, FaCheck, FaPhone, FaEnvelope, FaComments } from 'react-icons/fa';
+import { FaSearch, FaEye, FaBan, FaTrash, FaCheck, FaPhone, FaEnvelope, FaComments, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -26,8 +27,13 @@ const Users = () => {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (searchQuery) params.search = searchQuery;
 
-      const { data } = await api.get('/admin/users', { params });
-      setUsers(data);
+      const { data } = await api.get('/admin/users');
+
+      const usersList = Array.isArray(data)
+        ? data
+        : data.users || [];
+
+      setUsers(usersList);
     } catch (error) {
       toast.error('Failed to load users');
     } finally {
@@ -113,11 +119,10 @@ const Users = () => {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-lg text-sm capitalize transition-all ${
-                statusFilter === status
-                  ? 'bg-pvchat-blue text-white'
-                  : 'bg-pvchat-dark text-pvchat-gray hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm capitalize transition-all ${statusFilter === status
+                ? 'bg-pvchat-blue text-white'
+                : 'bg-pvchat-dark text-pvchat-gray hover:text-white'
+                }`}
             >
               {status}
             </button>

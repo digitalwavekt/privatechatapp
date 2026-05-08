@@ -7,6 +7,7 @@ import { useChatStore } from '../context/chatStore';
 import { useAuthStore } from '../context/authStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { FaComments } from 'react-icons/fa';
 
 const Chat = () => {
   const [searchParams] = useSearchParams();
@@ -19,14 +20,14 @@ const Chat = () => {
   const fileInputRef = useRef(null);
 
   const { user } = useAuthStore();
-  const { 
-    conversations, 
-    activeChat, 
-    messages, 
-    setActiveChat, 
-    addMessage, 
+  const {
+    conversations,
+    activeChat,
+    messages,
+    setActiveChat,
+    addMessage,
     setMessages,
-    typingUsers 
+    typingUsers
   } = useChatStore();
 
   const targetUserId = searchParams.get('user');
@@ -142,9 +143,8 @@ const Chat = () => {
             <div
               key={conv._id}
               onClick={() => loadChat(conv._id)}
-              className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-pvchat-card transition-all ${
-                activeChat?._id === conv._id ? 'bg-pvchat-card border-l-2 border-pvchat-blue' : ''
-              }`}
+              className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-pvchat-card transition-all ${activeChat?._id === conv._id ? 'bg-pvchat-card border-l-2 border-pvchat-blue' : ''
+                }`}
             >
               <div className="relative">
                 <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center">
@@ -195,13 +195,13 @@ const Chat = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={() => initiateCall('audio')}
                   className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
                 >
                   <FaPhone />
                 </button>
-                <button 
+                <button
                   onClick={() => initiateCall('video')}
                   className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
                 >
@@ -261,7 +261,7 @@ const Chat = () => {
               {selectedFile && (
                 <div className="mb-2 p-2 bg-pvchat-card rounded-lg flex items-center justify-between">
                   <span className="text-sm text-pvchat-gray">{selectedFile.name}</span>
-                  <button 
+                  <button
                     onClick={() => setSelectedFile(null)}
                     className="text-pvchat-danger text-sm"
                   >

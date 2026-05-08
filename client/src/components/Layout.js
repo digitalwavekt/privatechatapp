@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { 
-  FaComments, FaPhone, FaUsers, FaAddressBook, 
-  FaUser, FaCog, FaSignOutAlt, FaSearch 
+import {
+  FaComments, FaPhone, FaUsers, FaAddressBook,
+  FaUser, FaCog, FaSignOutAlt, FaSearch
 } from 'react-icons/fa';
 import { useAuthStore } from '../context/authStore';
 import { useChatStore } from '../context/chatStore';
 import toast from 'react-hot-toast';
+import api from '../utils/api';
 
 const Layout = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +59,7 @@ const Layout = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) => 
+              className={({ isActive }) =>
                 `nav-item ${isActive ? 'active' : ''}`
               }
             >
@@ -69,7 +70,7 @@ const Layout = () => {
 
         {/* Bottom Actions */}
         <div className="flex flex-col gap-2 w-full px-2">
-          <button 
+          <button
             onClick={() => setShowSearch(!showSearch)}
             className="nav-item"
           >

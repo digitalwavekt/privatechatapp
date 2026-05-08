@@ -1,54 +1,86 @@
 const multer = require('multer');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const supabase = require('../config/supabase');
-
-const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'audio/mpeg', 'audio/wav', 'application/pdf'];
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  fileFilter: (req, file, cb) => {
-    if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Invalid file type'), false);
-  },
-  limits: { fileSize: Number(process.env.MAX_FILE_SIZE || 10 * 1024 * 1024) }
-});
-
-exports.uploadMiddleware = upload.single('file');
-
-exports.uploadFile = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
-    const ext = path.extname(req.file.originalname) || '';
-    const type = req.file.mimetype.split('/')[0];
-    const fileName = `${uuidv4()}${ext}`;
-    const filePath = `${req.user.userId}/${type}s/${fileName}`;
-
-    const { error } = await supabase.storage
-      .from('chat-media')
-      .upload(filePath, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false
-      });
-
-    if (error) throw error;
-
-    const { data } = supabase.storage.from('chat-media').getPublicUrl(filePath);
-
-    res.json({
-      url: data.publicUrl,
-      thumbnailUrl: '',
-      filename: fileName,
-      path: filePath,
-      size: req.file.size,
-      mimetype: req.file.mimetype
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  limits: {
+    fileSize: 20 * 1024 * 1024
   }
-};
+}).fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'media', maxCount: 1 },
+  { name: 'image', maxCount: 1 },
+  { name: 'photo', maxCount: 1 }
+]);
 
-exports.uploadMultiple = async (req, res) => {
-  res.status(501).json({ message: 'Multiple upload will be added in next phase' });
+exports.uploadMedia = (req, res) => {
+  upload(req, res, async (err) => {
+    try {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+
+      const uploadedFile =
+        req.files?.file?.[0] ||
+        req.files?.media?.[0] ||
+        req.files?.image?.[0] ||
+        req.files?.photo?.[0];
+
+      if (!uploadedFile) {
+        return res.status(400).json({
+          success: false,
+          message: 'File is required'
+        });
+      }
+
+      const userId = req.user?.id || req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized'
+        });
+      }
+
+      const fileExt = uploadedFile.originalname.split('.').pop();
+      const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('chat-media')
+        .upload(filePath, uploadedFile.buffer, {
+          contentType: uploadedFile.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      const { data } = supabase.storage
+        .from('chat-media')
+        .getPublicUrl(filePath);
+
+      return res.json({
+        success: true,
+        message: 'File uploaded successfully',
+        url: data.publicUrl,
+        fileUrl: data.publicUrl,
+        path: filePath,
+        type: uploadedFile.mimetype,
+        size: uploadedFile.size
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  });
 };

@@ -12,7 +12,7 @@ export const useSocket = (token) => {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+    const socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
       auth: { token }
     });
 
@@ -66,7 +66,7 @@ export const useSocket = (token) => {
         <div className="flex flex-col gap-2">
           <p className="font-medium">Incoming {data.type} call from {data.caller.name}</p>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => {
                 window.location.href = `/call/${data.callId}?type=${data.type}&channel=${data.channelName}&token=${data.token}&caller=${data.caller._id}`;
                 toast.dismiss(t.id);
@@ -75,7 +75,7 @@ export const useSocket = (token) => {
             >
               Answer
             </button>
-            <button 
+            <button
               onClick={() => {
                 socket.emit('rejectCall', { callId: data.callId });
                 toast.dismiss(t.id);

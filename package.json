@@ -19,5 +19,8 @@
     "pvchat"
   ],
   "author": "DigitalWave",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "zustand": "^5.0.13"
+  }
 }

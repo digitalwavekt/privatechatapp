@@ -16,7 +16,12 @@ const Activities = () => {
   const loadActivities = async () => {
     try {
       const { data } = await api.get('/admin/activities');
-      setActivities(data);
+
+      const activitiesList = Array.isArray(data)
+        ? data
+        : data.activities || [];
+
+      setActivities(activitiesList);
     } catch (error) {
       toast.error('Failed to load activities');
     } finally {
@@ -42,8 +47,8 @@ const Activities = () => {
     }
   };
 
-  const filteredActivities = filter === 'all' 
-    ? activities 
+  const filteredActivities = filter === 'all'
+    ? activities
     : activities.filter(a => a.action === filter);
 
   const actionTypes = ['all', 'approve_user', 'block_user', 'force_delete_app'];
@@ -65,11 +70,10 @@ const Activities = () => {
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-4 py-2 rounded-lg text-sm capitalize transition-all ${
-              filter === type
-                ? 'bg-pvchat-blue text-white'
-                : 'bg-pvchat-dark text-pvchat-gray hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm capitalize transition-all ${filter === type
+              ? 'bg-pvchat-blue text-white'
+              : 'bg-pvchat-dark text-pvchat-gray hover:text-white'
+              }`}
           >
             {type === 'all' ? 'All Activities' : getActionLabel(type)}
           </button>
@@ -90,7 +94,7 @@ const Activities = () => {
         ) : (
           <div className="space-y-3 max-h-[600px] overflow-y-auto">
             {filteredActivities.map((activity, index) => (
-              <div 
+              <div
                 key={activity._id || index}
                 className="bg-pvchat-dark rounded-xl p-4 hover:bg-pvchat-dark/80 transition-all"
               >

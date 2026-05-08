@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../context/authStore';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -26,13 +28,19 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = useAuthStore.getState().refreshToken;
-        const response = await axios.post('/api/auth/refresh-token', { refreshToken });
 
-        const { accessToken } = response.data;
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+          refreshToken
+        });
+
+        const accessToken = response.data.accessToken || response.data.token;
+
         useAuthStore.getState().setAuth(
           useAuthStore.getState().user,
           accessToken,
-          refreshToken
+          response.data.refreshToken || refreshToken
         );
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;

@@ -9,7 +9,7 @@
   }
 
   * {
-    @apply scrollbar-thin scrollbar-thumb-pvchat-gray-dark scrollbar-track-pvchat-dark;
+    box-sizing: border-box;
   }
 }
 
@@ -27,20 +27,15 @@
   }
 
   .input-field {
-    @apply w-full bg-pvchat-card border border-pvchat-gray-dark rounded-xl px-4 py-3 text-sm 
-           text-white placeholder-gray-500 focus:outline-none focus:border-pvchat-blue 
-           focus:ring-1 focus:ring-pvchat-blue transition-all;
+    @apply w-full bg-pvchat-card border border-pvchat-gray-dark rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pvchat-blue focus:ring-1 focus:ring-pvchat-blue transition-all;
   }
 
   .btn-primary {
-    @apply bg-pvchat-blue hover:bg-pvchat-blue-dark text-white font-medium py-3 px-6 
-           rounded-xl transition-all duration-200 flex items-center justify-center gap-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-pvchat-blue hover:bg-pvchat-blue-dark text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply bg-pvchat-danger hover:bg-red-600 text-white font-medium py-3 px-6 
-           rounded-xl transition-all duration-200;
+    @apply bg-pvchat-danger hover:bg-red-600 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200;
   }
 
   .card {
@@ -48,8 +43,7 @@
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-pvchat-gray 
-           hover:text-white hover:bg-pvchat-card transition-all cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-pvchat-gray hover:text-white hover:bg-pvchat-card transition-all cursor-pointer;
   }
 
   .nav-item.active {
@@ -57,29 +51,47 @@
   }
 }
 
-/* Custom scrollbar */
-.scrollbar-thin::-webkit-scrollbar {
+/* Custom Scrollbar */
+::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar-track {
+  background: #111827;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
   border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
 /* Animations */
 @keyframes typing {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-4px); }
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-4px);
+  }
 }
 
 .typing-dot {
   animation: typing 1.4s infinite;
 }
 
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
