@@ -14,7 +14,7 @@ const UserChats = () => {
 
   useEffect(() => {
     loadUserChats();
-  }, [userId]);
+  }, [loadUserChatsId]);
 
   const loadUserChats = async () => {
     try {
@@ -115,7 +115,7 @@ const UserChats = () => {
             {messages.map((msg, index) => {
               const otherUser = getOtherUser(msg);
               return (
-                <div 
+                <div
                   key={msg._id || index}
                   className="bg-pvchat-dark rounded-xl p-4 hover:bg-pvchat-dark/80 transition-all"
                 >
@@ -143,9 +143,9 @@ const UserChats = () => {
 
                   <div className="ml-6">
                     {msg.type === 'image' && msg.mediaUrl && (
-                      <img 
-                        src={msg.mediaUrl} 
-                        alt="Shared" 
+                      <img
+                        src={msg.mediaUrl}
+                        alt="Shared"
                         className="max-w-xs rounded-lg mb-2"
                       />
                     )}

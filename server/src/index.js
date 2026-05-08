@@ -23,19 +23,21 @@ const server = http.createServer(app);
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:5173',
-  'http://localhost:5174'
+  ...(process.env.CORS_ORIGINS || '').split(',')
 ].filter(Boolean);
 
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    credentials: true
-  }
-});
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true
+}));
 
 app.set('io', io);
 

@@ -43,7 +43,7 @@ const Activities = () => {
       case 'approve_user': return 'Approved User';
       case 'block_user': return 'Blocked User';
       case 'force_delete_app': return 'Force Deleted App';
-      default: return action.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase());
+      default: return action.replace(/_/g, ' ').replace(/\b/g, l => l.toUpperCase());
     }
   };
 

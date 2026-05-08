@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheck, FaTimes, FaUser, FaEnvelope, FaPhone, FaCamera } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaEnvelope, FaPhone, FaCamera } from 'react-icons/fa';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 

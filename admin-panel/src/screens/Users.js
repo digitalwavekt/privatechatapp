@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEye, FaBan, FaTrash, FaCheck, FaPhone, FaEnvelope, FaComments, FaUsers } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaSearch, FaBan, FaTrash, FaPhone, FaEnvelope, FaComments, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -19,7 +20,7 @@ const Users = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [statusFilter]);
+  }, [loadUsers]);
 
   const loadUsers = async () => {
     try {

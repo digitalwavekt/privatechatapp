@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { 
-  FaTachometerAlt, FaUsers, FaUserClock, FaComments, 
-  FaHistory, FaSignOutAlt, FaShieldAlt 
+import {
+  FaTachometerAlt, FaUserClock,
+  FaHistory, FaSignOutAlt, FaShieldAlt
 } from 'react-icons/fa';
 import { useAuthStore } from '../context/authStore';
 import toast from 'react-hot-toast';
@@ -47,11 +47,10 @@ const AdminLayout = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all ${
-                  isActive 
-                    ? 'bg-pvchat-blue/10 text-pvchat-blue' 
-                    : 'text-pvchat-gray hover:text-white hover:bg-pvchat-card'
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all ${isActive
+                  ? 'bg-pvchat-blue/10 text-pvchat-blue'
+                  : 'text-pvchat-gray hover:text-white hover:bg-pvchat-card'
                 }`
               }
             >
