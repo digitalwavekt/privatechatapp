@@ -20,8 +20,25 @@ exports.initiateCall = async (req, res) => {
     const agoraToken = createAgoraToken(channelName);
     const { data: call, error } = await supabase.from('calls').insert({ caller_id: req.user.userId, receiver_id: receiverId, type, status: 'ongoing', agora_channel: channelName, agora_token: agoraToken }).select('*').single();
     if (error) throw error;
-    req.app.get('io').to(receiverId).emit('incomingCall', { callId: call.id, callerId: req.user.userId, type, channelName, agoraToken });
-    res.status(201).json({ callId: call.id, channelName, agoraToken, appId: process.env.AGORA_APP_ID });
+    req.app.get('io').to(receiverId).emit('incomingCall', {
+      callId: call.id,
+      callerId: req.user.userId,
+      receiverId,
+      type,
+      channelName,
+      token: agoraToken,
+      agoraToken,
+      appId: process.env.AGORA_APP_ID
+    });
+
+    res.status(201).json({
+      callId: call.id,
+      id: call.id,
+      channelName,
+      token: agoraToken,
+      agoraToken,
+      appId: process.env.AGORA_APP_ID
+    });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
@@ -60,6 +77,29 @@ exports.getCallHistory = async (req, res) => {
   try {
     const { data, error } = await supabase.from('calls').select('*').or(`caller_id.eq.${req.user.userId},receiver_id.eq.${req.user.userId}`).order('started_at', { ascending: false }).limit(100);
     if (error) throw error;
-    res.json((data || []).map(c => ({ _id: c.id, id: c.id, caller: c.caller_id, receiver: c.receiver_id, type: c.type, status: c.status, startedAt: c.started_at, endedAt: c.ended_at, duration: c.duration, agoraChannel: c.agora_channel, agoraToken: c.agora_token })));
-  } catch (error) { res.status(500).json({ message: error.message }); }
+    res.json((data || []).map(c => ({
+      _id: c.id,
+      id: c.id,
+      caller: {
+        _id: c.caller_id,
+        id: c.caller_id,
+        name: c.caller_id === req.user.userId ? 'You' : 'Caller'
+      },
+      receiver: {
+        _id: c.receiver_id,
+        id: c.receiver_id,
+        name: c.receiver_id === req.user.userId ? 'You' : 'Receiver'
+      },
+      type: c.type,
+      status: c.status,
+      startedAt: c.started_at,
+      createdAt: c.started_at,
+      endedAt: c.ended_at,
+      duration: c.duration || 0,
+      agoraChannel: c.agora_channel,
+      channelName: c.agora_channel,
+      agoraToken: c.agora_token,
+      token: c.agora_token
+    })));
+  }
 };

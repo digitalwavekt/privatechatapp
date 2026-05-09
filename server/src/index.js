@@ -21,7 +21,7 @@ const { initializeAdmin } = require('./utils/initializeAdmin');
 const app = express();
 const server = http.createServer(app);
 
-const normalizeOrigin = origin => {
+const normalizeOrigin = (origin) => {
   if (!origin) return null;
   return origin.trim().replace(/\/$/, '');
 };
@@ -31,7 +31,6 @@ const allowedOrigins = [
   process.env.ADMIN_URL,
   ...(process.env.CORS_ORIGINS || '').split(','),
 
-  // Local dev
   'http://localhost',
   'https://localhost',
   'http://localhost:3000',
@@ -39,27 +38,23 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
 
-  // Capacitor / Android WebView
   'capacitor://localhost',
-  'ionic://localhost'
+  'ionic://localhost',
 ]
   .map(normalizeOrigin)
   .filter(Boolean);
 
 const uniqueAllowedOrigins = [...new Set(allowedOrigins)];
 
-const isAllowedOrigin = origin => {
+const isAllowedOrigin = (origin) => {
   if (!origin) return true;
 
   const cleanOrigin = normalizeOrigin(origin);
-
   return uniqueAllowedOrigins.includes(cleanOrigin);
 };
 
 const corsOptions = {
   origin: (origin, callback) => {
-    console.log('Incoming Origin:', origin || 'NO_ORIGIN');
-
     if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
@@ -74,20 +69,19 @@ const corsOptions = {
     'Authorization',
     'X-Requested-With',
     'Accept',
-    'Origin'
+    'Origin',
   ],
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
-
 app.options(/.*/, cors(corsOptions));
 
 app.use(
   helmet({
     crossOriginResourcePolicy: false,
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false
+    contentSecurityPolicy: false,
   })
 );
 
@@ -106,39 +100,14 @@ const io = new Server(server, {
       return callback(null, false);
     },
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
 });
 
 app.set('io', io);
-
-io.on('connection', socket => {
-  console.log('Socket connected:', socket.id);
-
-  socket.on('join', userId => {
-    if (!userId) return;
-    socket.join(`user:${userId}`);
-    console.log(`User joined room: user:${userId}`);
-  });
-
-  socket.on('join_user', userId => {
-    if (!userId) return;
-    socket.join(`user:${userId}`);
-    console.log(`User joined room: user:${userId}`);
-  });
-
-  socket.on('join_admin', () => {
-    socket.join('admin');
-    console.log('Admin joined admin room');
-  });
-
-  socket.on('disconnect', reason => {
-    console.log('Socket disconnected:', socket.id, reason);
-  });
-});
 
 if (typeof socketHandler === 'function') {
   socketHandler(io);
@@ -147,7 +116,7 @@ if (typeof socketHandler === 'function') {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'PVChat backend is running'
+    message: 'PVChat backend is running',
   });
 });
 
@@ -158,7 +127,10 @@ app.get('/api/health', (req, res) => {
     time: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     incomingOrigin: req.headers.origin || null,
-    allowedOrigins: uniqueAllowedOrigins
+    allowedOrigins: uniqueAllowedOrigins,
+    agoraConfigured: Boolean(
+      process.env.AGORA_APP_ID && process.env.AGORA_APP_CERTIFICATE
+    ),
   });
 });
 
@@ -173,7 +145,7 @@ app.use('/api/media', mediaRoutes);
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
 
@@ -182,7 +154,7 @@ app.use((err, req, res, next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal server error'
+    message: err.message || 'Internal server error',
   });
 });
 
