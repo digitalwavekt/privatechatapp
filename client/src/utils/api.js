@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../context/authStore';
 
+// FIXED: CRA uses process.env, NOT import.meta.env (which is Vite-only)
 const API_URL = process.env.REACT_APP_API_URL;
 
 const api = axios.create({
