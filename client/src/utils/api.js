@@ -1,29 +1,39 @@
 import axios from 'axios';
 import { useAuthStore } from '../context/authStore';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().token;
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      !originalRequest?.url?.includes('/auth/refresh-token')
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -31,9 +41,15 @@ api.interceptors.response.use(
 
         if (!refreshToken) throw new Error('No refresh token');
 
-        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
-          refreshToken
-        });
+        const response = await axios.post(
+          `${API_URL}/auth/refresh-token`,
+          { refreshToken },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
         const accessToken = response.data.accessToken || response.data.token;
 
@@ -44,6 +60,7 @@ api.interceptors.response.use(
         );
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
         return api(originalRequest);
       } catch (refreshError) {
         useAuthStore.getState().logout();
