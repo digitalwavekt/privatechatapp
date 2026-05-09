@@ -1,7 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaUserPlus, FaBan, FaUserCheck, FaPhone, FaComment } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaSearch, FaUserPlus, FaBan, FaPhone, FaComment, FaVideo } from 'react-icons/fa';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+
+const normalizeArray = (data, key) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
+
+const normalizeObject = (data, key) => {
+  if (!data) return null;
+  if (data?.[key] && typeof data[key] === 'object') return data[key];
+  if (data?.user && typeof data.user === 'object') return data.user;
+  if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) return data.data;
+  if (typeof data === 'object' && !Array.isArray(data)) return data;
+  return null;
+};
+
+const getId = (item) => item?._id || item?.id || item?.userId || item?.user?._id || item?.user?.id;
+const getName = (item) => item?.name || item?.fullName || item?.user?.name || item?.email || 'Unknown User';
+const getPhone = (item) => item?.phone || item?.mobile || item?.user?.phone || '';
 
 const Contacts = () => {
   const [contacts, setContacts] = useState([]);
@@ -9,24 +31,19 @@ const Contacts = () => {
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const safeContacts = useMemo(() => normalizeArray(contacts), [contacts]);
+
   useEffect(() => {
     loadContacts();
   }, []);
 
   const loadContacts = async () => {
     try {
+      setLoading(true);
       const { data } = await api.get('/users/contacts');
-
-      const contactsData = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.contacts)
-          ? data.contacts
-          : Array.isArray(data?.data)
-            ? data.data
-            : [];
-
-      setContacts(contactsData);
+      setContacts(normalizeArray(data, 'contacts'));
     } catch (error) {
+      console.error('Load contacts error:', error);
       toast.error(error.response?.data?.message || 'Failed to load contacts');
       setContacts([]);
     } finally {
@@ -36,55 +53,77 @@ const Contacts = () => {
 
   const searchUser = async (e) => {
     e.preventDefault();
-    if (!searchQuery.trim()) return;
+    const query = searchQuery.trim();
+    if (!query) return;
 
     try {
-      const { data } = await api.get(`/users/search/${searchQuery}`);
-      setSearchResult(data);
+      const { data } = await api.get(`/users/search/${encodeURIComponent(query)}`);
+      const user = normalizeObject(data, 'user');
+      setSearchResult(user);
+      if (!user) toast.error('User not found or not approved');
     } catch (error) {
-      toast.error('User not found or not approved');
+      console.error('Search user error:', error);
+      toast.error(error.response?.data?.message || 'User not found or not approved');
       setSearchResult(null);
     }
   };
 
   const addContact = async (userId) => {
+    if (!userId) {
+      toast.error('Invalid user');
+      return;
+    }
+
     try {
       await api.post('/users/contacts', { userId });
       toast.success('Contact added!');
-      loadContacts();
+      await loadContacts();
       setSearchResult(null);
       setSearchQuery('');
     } catch (error) {
-      toast.error('Failed to add contact');
+      console.error('Add contact error:', error);
+      toast.error(error.response?.data?.message || 'Failed to add contact');
     }
   };
 
   const blockUser = async (userId) => {
+    if (!userId) return;
+
     try {
       await api.post(`/users/block/${userId}`);
       toast.success('User blocked');
-      loadContacts();
+      await loadContacts();
     } catch (error) {
-      toast.error('Failed to block user');
+      console.error('Block user error:', error);
+      toast.error(error.response?.data?.message || 'Failed to block user');
     }
   };
 
   const startChat = (userId) => {
+    if (!userId) return;
     window.location.href = `/?user=${userId}`;
   };
 
   const startCall = (type, userId) => {
+    if (!userId) return;
     window.location.href = `/call/new?type=${type}&user=${userId}`;
+  };
+
+  const formatLastSeen = (lastSeen) => {
+    if (!lastSeen) return 'Offline';
+    try {
+      return `Last seen ${new Date(lastSeen).toLocaleDateString()}`;
+    } catch {
+      return 'Offline';
+    }
   };
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="h-16 bg-pvchat-dark border-b border-pvchat-gray-dark/30 flex items-center justify-between px-6">
         <h2 className="text-lg font-semibold text-white">Contacts</h2>
       </div>
 
-      {/* Search */}
       <div className="p-4 bg-pvchat-dark border-b border-pvchat-gray-dark/30">
         <form onSubmit={searchUser} className="flex gap-2">
           <div className="relative flex-1">
@@ -102,23 +141,23 @@ const Contacts = () => {
           </button>
         </form>
 
-        {/* Search Result */}
         {searchResult && (
           <div className="mt-4 card p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center shrink-0">
                 <span className="text-lg font-bold text-white">
-                  {searchResult.name?.charAt(0)?.toUpperCase()}
+                  {getName(searchResult)?.charAt(0)?.toUpperCase() || 'U'}
                 </span>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-white">{searchResult.name}</h4>
-                <p className="text-xs text-pvchat-gray">{searchResult.phone}</p>
+              <div className="min-w-0">
+                <h4 className="text-sm font-medium text-white truncate">{getName(searchResult)}</h4>
+                <p className="text-xs text-pvchat-gray truncate">{getPhone(searchResult)}</p>
               </div>
             </div>
             <button
-              onClick={() => addContact(searchResult._id)}
+              onClick={() => addContact(getId(searchResult))}
               className="p-2 bg-pvchat-blue rounded-lg text-white hover:bg-pvchat-blue-dark transition-all"
+              title="Add contact"
             >
               <FaUserPlus />
             </button>
@@ -126,13 +165,12 @@ const Contacts = () => {
         )}
       </div>
 
-      {/* Contacts List */}
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin w-8 h-8 border-2 border-pvchat-blue border-t-transparent rounded-full" />
           </div>
-        ) : contacts.length === 0 ? (
+        ) : safeContacts.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <FaUserPlus className="text-4xl text-pvchat-gray mx-auto mb-4" />
@@ -144,63 +182,73 @@ const Contacts = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {contacts.map((contact) => (
-              <div
-                key={contact._id}
-                className="card p-4 flex items-center justify-between hover:bg-pvchat-card/80 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center">
-                      <span className="text-lg font-bold text-white">
-                        {contact.name?.charAt(0)?.toUpperCase()}
-                      </span>
-                    </div>
-                    {contact.isOnline && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-pvchat-card" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-white">{contact.name}</h4>
-                    <p className="text-xs text-pvchat-gray">{contact.phone}</p>
-                    <p className="text-xs text-pvchat-gray-dark">
-                      {contact.isOnline ? 'Online' : `Last seen ${new Date(contact.lastSeen).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                </div>
+            {safeContacts.map((contact, index) => {
+              const contactId = getId(contact) || index;
+              const name = getName(contact);
+              const phone = getPhone(contact);
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => startCall('audio', contact._id)}
-                    className="p-2 text-pvchat-gray hover:text-pvchat-success transition-all"
-                    title="Audio Call"
-                  >
-                    <FaPhone />
-                  </button>
-                  <button
-                    onClick={() => startCall('video', contact._id)}
-                    className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
-                    title="Video Call"
-                  >
-                    <FaPhone className="rotate-90" />
-                  </button>
-                  <button
-                    onClick={() => startChat(contact._id)}
-                    className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
-                    title="Message"
-                  >
-                    <FaComment />
-                  </button>
-                  <button
-                    onClick={() => blockUser(contact._id)}
-                    className="p-2 text-pvchat-gray hover:text-pvchat-danger transition-all"
-                    title="Block"
-                  >
-                    <FaBan />
-                  </button>
+              return (
+                <div
+                  key={contactId}
+                  className="card p-4 flex items-center justify-between hover:bg-pvchat-card/80 transition-all gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center overflow-hidden">
+                        {contact?.avatar ? (
+                          <img src={contact.avatar} alt={name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-lg font-bold text-white">
+                            {name?.charAt(0)?.toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      {contact?.isOnline && (
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-pvchat-card" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-medium text-white truncate">{name}</h4>
+                      <p className="text-xs text-pvchat-gray truncate">{phone}</p>
+                      <p className="text-xs text-pvchat-gray-dark truncate">
+                        {contact?.isOnline ? 'Online' : formatLastSeen(contact?.lastSeen)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => startCall('audio', getId(contact))}
+                      className="p-2 text-pvchat-gray hover:text-pvchat-success transition-all"
+                      title="Audio Call"
+                    >
+                      <FaPhone />
+                    </button>
+                    <button
+                      onClick={() => startCall('video', getId(contact))}
+                      className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
+                      title="Video Call"
+                    >
+                      <FaVideo />
+                    </button>
+                    <button
+                      onClick={() => startChat(getId(contact))}
+                      className="p-2 text-pvchat-gray hover:text-pvchat-blue transition-all"
+                      title="Message"
+                    >
+                      <FaComment />
+                    </button>
+                    <button
+                      onClick={() => blockUser(getId(contact))}
+                      className="p-2 text-pvchat-gray hover:text-pvchat-danger transition-all"
+                      title="Block"
+                    >
+                      <FaBan />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

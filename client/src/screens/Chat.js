@@ -41,10 +41,28 @@ const Chat = () => {
     typingUsers
   } = useChatStore();
 
-  const safeConversations = Array.isArray(conversations) ? conversations : [];
-  const safeMessages = Array.isArray(messages) ? messages : [];
+  const normalizeArray = (data, key) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.result)) return data.result;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
+  };
+
+  const normalizeObject = (data, key) => {
+    if (!data) return null;
+    if (data?.[key] && typeof data[key] === 'object') return data[key];
+    if (data?.message && typeof data.message === 'object') return data.message;
+    if (data?.data && typeof data.data === 'object' && !Array.isArray(data.data)) return data.data;
+    if (typeof data === 'object' && !Array.isArray(data)) return data;
+    return null;
+  };
+
+  const safeConversations = normalizeArray(conversations);
+  const safeMessages = normalizeArray(messages);
   const safeTypingUsers =
-    typingUsers && typeof typingUsers === 'object' ? typingUsers : {};
+    typingUsers && typeof typingUsers === 'object' && !Array.isArray(typingUsers) ? typingUsers : {};
 
   const targetUserId = searchParams.get('user');
 
@@ -60,13 +78,6 @@ const Chat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [safeMessages]);
-
-  const normalizeArray = (data, key) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.[key])) return data[key];
-    if (Array.isArray(data?.data)) return data.data;
-    return [];
-  };
 
   const loadConversations = async () => {
     try {
@@ -84,7 +95,7 @@ const Chat = () => {
         (c) => c?._id === userId || c?.user?._id === userId
       );
 
-      setActiveChat(convUser?.user || convUser || { _id: userId });
+      setActiveChat(convUser?.user || convUser || { _id: userId, name: 'User' });
 
       const { data } = await api.get(`/chat/messages/${userId}`);
       const messagesData = normalizeArray(data, 'messages');
@@ -128,7 +139,7 @@ const Chat = () => {
         mediaUrl
       });
 
-      const newMessage = data?.message || data?.data || data;
+      const newMessage = normalizeObject(data, 'message');
 
       if (newMessage) {
         addMessage(newMessage);
