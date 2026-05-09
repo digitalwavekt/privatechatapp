@@ -5,23 +5,55 @@ const supabase = require('../config/supabase');
 function createAgoraToken(channelName) {
   const appId = process.env.AGORA_APP_ID;
   const appCertificate = process.env.AGORA_APP_CERTIFICATE;
-  if (!appId || !appCertificate) return '';
+
+  if (!appId || !appCertificate) {
+    throw new Error('Agora env missing: AGORA_APP_ID or AGORA_APP_CERTIFICATE');
+  }
+
   const expirationTimeInSeconds = 3600;
   const currentTimestamp = Math.floor(Date.now() / 1000);
   const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
-  return RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channelName, 0, RtcRole.PUBLISHER, privilegeExpiredTs);
+
+  return RtcTokenBuilder.buildTokenWithUid(
+    appId,
+    appCertificate,
+    channelName,
+    0,
+    RtcRole.PUBLISHER,
+    privilegeExpiredTs
+  );
 }
 
 exports.initiateCall = async (req, res) => {
   try {
     const { receiverId, type = 'audio' } = req.body;
-    if (!receiverId) return res.status(400).json({ message: 'receiverId required' });
+
+    if (!receiverId) {
+      return res.status(400).json({ success: false, message: 'receiverId required' });
+    }
+
     const channelName = `pvchat_${uuidv4()}`;
     const agoraToken = createAgoraToken(channelName);
-    const { data: call, error } = await supabase.from('calls').insert({ caller_id: req.user.userId, receiver_id: receiverId, type, status: 'ongoing', agora_channel: channelName, agora_token: agoraToken }).select('*').single();
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .insert({
+        caller_id: req.user.userId,
+        receiver_id: receiverId,
+        type,
+        status: 'ongoing',
+        started_at: new Date().toISOString(),
+        agora_channel: channelName,
+        agora_token: agoraToken
+      })
+      .select('*')
+      .single();
+
     if (error) throw error;
-    req.app.get('io').to(receiverId).emit('incomingCall', {
+
+    const payload = {
       callId: call.id,
+      id: call.id,
       callerId: req.user.userId,
       receiverId,
       type,
@@ -29,66 +61,154 @@ exports.initiateCall = async (req, res) => {
       token: agoraToken,
       agoraToken,
       appId: process.env.AGORA_APP_ID
-    });
+    };
 
-    res.status(201).json({
-      callId: call.id,
-      id: call.id,
-      channelName,
-      token: agoraToken,
-      agoraToken,
-      appId: process.env.AGORA_APP_ID
+    req.app.get('io')?.to(receiverId).emit('incomingCall', payload);
+
+    return res.status(201).json({
+      success: true,
+      ...payload
     });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+  } catch (error) {
+    console.error('initiateCall error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.acceptCall = async (req, res) => {
   try {
-    const { data: call, error } = await supabase.from('calls').select('*').eq('id', req.params.callId).single();
+    const { data: call, error } = await supabase
+      .from('calls')
+      .select('*')
+      .eq('id', req.params.callId)
+      .single();
+
     if (error) throw error;
-    req.app.get('io').to(call.caller_id).emit('callAccepted', { callId: call.id });
-    res.json({ message: 'Call accepted', call });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+    if (!call) {
+      return res.status(404).json({ success: false, message: 'Call not found' });
+    }
+
+    await supabase
+      .from('calls')
+      .update({ status: 'accepted' })
+      .eq('id', req.params.callId);
+
+    req.app.get('io')?.to(call.caller_id).emit('callAccepted', {
+      callId: call.id,
+      id: call.id,
+      channelName: call.agora_channel,
+      token: call.agora_token,
+      agoraToken: call.agora_token,
+      appId: process.env.AGORA_APP_ID
+    });
+
+    return res.json({
+      success: true,
+      message: 'Call accepted',
+      call,
+      channelName: call.agora_channel,
+      token: call.agora_token,
+      agoraToken: call.agora_token,
+      appId: process.env.AGORA_APP_ID
+    });
+  } catch (error) {
+    console.error('acceptCall error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.endCall = async (req, res) => {
   try {
-    const { data: existing } = await supabase.from('calls').select('*').eq('id', req.params.callId).single();
+    const { data: existing, error: findError } = await supabase
+      .from('calls')
+      .select('*')
+      .eq('id', req.params.callId)
+      .single();
+
+    if (findError) throw findError;
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Call not found' });
+    }
+
     const endedAt = new Date();
-    const duration = existing?.started_at ? Math.floor((endedAt - new Date(existing.started_at)) / 1000) : 0;
-    const { data: call, error } = await supabase.from('calls').update({ status: 'completed', ended_at: endedAt.toISOString(), duration }).eq('id', req.params.callId).select('*').single();
+    const duration = existing.started_at
+      ? Math.floor((endedAt - new Date(existing.started_at)) / 1000)
+      : 0;
+
+    const { data: call, error } = await supabase
+      .from('calls')
+      .update({
+        status: 'completed',
+        ended_at: endedAt.toISOString(),
+        duration
+      })
+      .eq('id', req.params.callId)
+      .select('*')
+      .single();
+
     if (error) throw error;
-    req.app.get('io').to(call.caller_id).emit('callEnded', { callId: call.id });
-    req.app.get('io').to(call.receiver_id).emit('callEnded', { callId: call.id });
-    res.json({ message: 'Call ended', call });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    req.app.get('io')?.to(call.caller_id).emit('callEnded', { callId: call.id, id: call.id });
+    req.app.get('io')?.to(call.receiver_id).emit('callEnded', { callId: call.id, id: call.id });
+
+    return res.json({ success: true, message: 'Call ended', call });
+  } catch (error) {
+    console.error('endCall error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.rejectCall = async (req, res) => {
   try {
-    const { data: call, error } = await supabase.from('calls').update({ status: 'rejected', ended_at: new Date().toISOString() }).eq('id', req.params.callId).select('*').single();
+    const { data: call, error } = await supabase
+      .from('calls')
+      .update({
+        status: 'rejected',
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', req.params.callId)
+      .select('*')
+      .single();
+
     if (error) throw error;
-    req.app.get('io').to(call.caller_id).emit('callRejected', { callId: call.id });
-    res.json({ message: 'Call rejected', call });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    req.app.get('io')?.to(call.caller_id).emit('callRejected', {
+      callId: call.id,
+      id: call.id
+    });
+
+    return res.json({ success: true, message: 'Call rejected', call });
+  } catch (error) {
+    console.error('rejectCall error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.getCallHistory = async (req, res) => {
   try {
-    const { data, error } = await supabase.from('calls').select('*').or(`caller_id.eq.${req.user.userId},receiver_id.eq.${req.user.userId}`).order('started_at', { ascending: false }).limit(100);
+    const userId = req.user.userId;
+
+    const { data, error } = await supabase
+      .from('calls')
+      .select('*')
+      .or(`caller_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('started_at', { ascending: false })
+      .limit(100);
+
     if (error) throw error;
-    res.json((data || []).map(c => ({
+
+    const calls = (data || []).map((c) => ({
       _id: c.id,
       id: c.id,
       caller: {
         _id: c.caller_id,
         id: c.caller_id,
-        name: c.caller_id === req.user.userId ? 'You' : 'Caller'
+        name: c.caller_id === userId ? 'You' : 'Caller'
       },
       receiver: {
         _id: c.receiver_id,
         id: c.receiver_id,
-        name: c.receiver_id === req.user.userId ? 'You' : 'Receiver'
+        name: c.receiver_id === userId ? 'You' : 'Receiver'
       },
       type: c.type,
       status: c.status,
@@ -100,6 +220,11 @@ exports.getCallHistory = async (req, res) => {
       channelName: c.agora_channel,
       agoraToken: c.agora_token,
       token: c.agora_token
-    })));
+    }));
+
+    return res.json(calls);
+  } catch (error) {
+    console.error('getCallHistory error:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
