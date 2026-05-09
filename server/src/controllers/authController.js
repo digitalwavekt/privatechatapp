@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
 const { mapUser } = require('../utils/mapper');
 
-const createTokens = (user) => {
+const createTokens = user => {
   const payload = {
     id: user.id,
     userId: user.id,
@@ -11,11 +11,9 @@ const createTokens = (user) => {
     role: user.role || 'user'
   };
 
-  const token = jwt.sign(
-    payload,
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
+  const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  });
 
   const refreshToken = jwt.sign(
     payload,
@@ -32,8 +30,14 @@ const createTokens = (user) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, fullName, email, password, phone, deviceInfo } = req.body;
+    console.log('REGISTER HIT BODY:', req.body);
+    console.log('SUPABASE URL EXISTS:', !!process.env.SUPABASE_URL);
+    console.log(
+      'SERVICE KEY EXISTS:',
+      !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)
+    );
 
+    const { name, fullName, email, password, phone, deviceInfo } = req.body;
     const finalName = name || fullName;
 
     if (!finalName || !email || !password || !phone) {
@@ -44,14 +48,25 @@ exports.register = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPhone = String(phone).trim();
 
     const { data: existing, error: existingError } = await supabase
       .from('profiles')
-      .select('id')
-      .or(`email.eq.${normalizedEmail},phone.eq.${phone}`)
+      .select('id,email,phone')
+      .or(`email.eq.${normalizedEmail},phone.eq.${normalizedPhone}`)
       .maybeSingle();
 
-    if (existingError) throw existingError;
+    if (existingError) {
+      console.error('SUPABASE EXISTING CHECK ERROR:', existingError);
+      return res.status(500).json({
+        success: false,
+        message: 'Existing user check failed',
+        error: existingError.message,
+        details: existingError.details,
+        hint: existingError.hint,
+        code: existingError.code
+      });
+    }
 
     if (existing) {
       return res.status(400).json({
@@ -62,22 +77,48 @@ exports.register = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const { data: user, error } = await supabase
+    const payload = {
+      name: finalName.trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      password_hash: passwordHash,
+      device_info: deviceInfo || {},
+      status: 'pending',
+      role: 'user',
+      is_online: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('PROFILE INSERT PAYLOAD:', {
+      ...payload,
+      password_hash: '[hidden]'
+    });
+
+    const { data: user, error: insertError } = await supabase
       .from('profiles')
-      .insert({
-        name: finalName.trim(),
-        email: normalizedEmail,
-        phone,
-        password_hash: passwordHash,
-        device_info: deviceInfo || {},
-        status: 'pending',
-        role: 'user',
-        is_online: false
-      })
+      .insert(payload)
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (insertError) {
+      console.error('SUPABASE PROFILE INSERT ERROR:', insertError);
+      return res.status(500).json({
+        success: false,
+        message: 'Profile insert failed',
+        error: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
+    }
+
+    console.log('PROFILE CREATED:', {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status
+    });
 
     return res.status(201).json({
       success: true,
@@ -86,10 +127,10 @@ exports.register = async (req, res) => {
       user: mapUser(user)
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('REGISTER UNHANDLED ERROR:', error);
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message || 'Registration failed'
     });
   }
 };
