@@ -21,40 +21,73 @@ const { initializeAdmin } = require('./utils/initializeAdmin');
 const app = express();
 const server = http.createServer(app);
 
+const normalizeOrigin = origin => {
+  if (!origin) return null;
+  return origin.trim().replace(/\/$/, '');
+};
+
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.ADMIN_URL,
   ...(process.env.CORS_ORIGINS || '').split(','),
+
+  // Local dev
+  'http://localhost',
+  'https://localhost',
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'http://localhost:5174'
+  'http://localhost:5174',
+
+  // Capacitor / Android WebView
+  'capacitor://localhost',
+  'ionic://localhost'
 ]
-  .map(origin => origin && origin.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
+
+const uniqueAllowedOrigins = [...new Set(allowedOrigins)];
+
+const isAllowedOrigin = origin => {
+  if (!origin) return true;
+
+  const cleanOrigin = normalizeOrigin(origin);
+
+  return uniqueAllowedOrigins.includes(cleanOrigin);
+};
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
+    console.log('Incoming Origin:', origin || 'NO_ORIGIN');
 
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
 
     console.log('CORS blocked:', origin);
-    return callback(new Error(`CORS blocked: ${origin}`));
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
+app.options(/.*/, cors(corsOptions));
 
 app.use(
   helmet({
-    crossOriginResourcePolicy: false
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false
   })
 );
 
@@ -64,7 +97,14 @@ app.use(morgan('dev'));
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+
+      console.log('Socket CORS blocked:', origin);
+      return callback(null, false);
+    },
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -117,7 +157,8 @@ app.get('/api/health', (req, res) => {
     message: 'PVChat API running',
     time: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    allowedOrigins
+    incomingOrigin: req.headers.origin || null,
+    allowedOrigins: uniqueAllowedOrigins
   });
 });
 
@@ -149,7 +190,7 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, async () => {
   console.log(`PVChat server running on port ${PORT}`);
-  console.log('Allowed origins:', allowedOrigins);
+  console.log('Allowed origins:', uniqueAllowedOrigins);
 
   try {
     await initializeAdmin();
