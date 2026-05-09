@@ -29,7 +29,7 @@ const AdminLogin = () => {
 
       const token = data.token || data.accessToken;
 
-      if (!data.user || data.user.role !== 'admin') {
+      if (!data.user || !['admin', 'super_admin'].includes(data.user.role)) {
         toast.error('Admin access only');
         return;
       }
