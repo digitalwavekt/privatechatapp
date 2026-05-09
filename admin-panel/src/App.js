@@ -13,14 +13,20 @@ import AdminLayout from './components/AdminLayout';
 
 const PrivateRoute = ({ children }) => {
   const { token, user } = useAuthStore();
-  if (!token || user?.role !== 'admin') return <Navigate to="/login" />;
+
+  const isAdmin = ['admin', 'super_admin'].includes(user?.role);
+
+  if (!token || !isAdmin) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 };
 
 function App() {
   return (
     <Router>
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           style: {

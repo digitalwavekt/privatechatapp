@@ -42,7 +42,7 @@ const AdminLogin = () => {
       setAuth(data.user, token);
 
       toast.success('Welcome Admin!');
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('ADMIN LOGIN ERROR:', error.response?.data || error.message);
 
