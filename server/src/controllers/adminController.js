@@ -28,7 +28,10 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanPassword = String(password || '');
+
+    if (!cleanEmail || !cleanPassword) {
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
@@ -36,10 +39,9 @@ exports.login = async (req, res) => {
     }
 
     const { data: admin, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .eq('role', 'admin')
+      .from('admins')
+      .select('id, name, email, password_hash, role, is_active')
+      .eq('email', cleanEmail)
       .maybeSingle();
 
     if (error || !admin) {
@@ -49,14 +51,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    if (admin.status !== 'approved') {
+    if (!admin.is_active) {
       return res.status(403).json({
         success: false,
         message: 'Admin account is not active'
       });
     }
 
-    const isMatch = await bcrypt.compare(password, admin.password_hash || '');
+    const isMatch = await bcrypt.compare(cleanPassword, admin.password_hash || '');
 
     if (!isMatch) {
       return res.status(401).json({
@@ -70,7 +72,7 @@ exports.login = async (req, res) => {
         id: admin.id,
         userId: admin.id,
         email: admin.email,
-        role: admin.role
+        role: admin.role || 'super_admin'
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
@@ -92,9 +94,9 @@ exports.login = async (req, res) => {
         id: admin.id,
         name: admin.name,
         email: admin.email,
-        phone: admin.phone,
-        role: admin.role,
-        status: admin.status
+        role: admin.role || 'super_admin',
+        status: 'approved',
+        is_active: admin.is_active
       }
     });
   } catch (error) {
