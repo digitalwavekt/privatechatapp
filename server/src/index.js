@@ -14,9 +14,11 @@ const groupRoutes = require('./routes/group');
 const adminRoutes = require('./routes/admin');
 const callRoutes = require('./routes/call');
 const mediaRoutes = require('./routes/media');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const { socketHandler } = require('./socket/handler');
 const { initializeAdmin } = require('./utils/initializeAdmin');
+require('./config/firebase');
 
 const app = express();
 const server = http.createServer(app);

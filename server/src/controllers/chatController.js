@@ -1,6 +1,6 @@
 const supabase = require('../config/supabase');
 const { mapMessage, publicUser } = require('../utils/mapper');
-const { sendPushNotification } = require('../utils/notifications');
+const { sendToUser } = require('../services/notificationService');
 
 const getUserId = (req) => {
   return req.user?.userId || req.user?.id || req.user?._id;
@@ -85,10 +85,13 @@ exports.sendMessage = async (req, res) => {
 
     const users = await loadUsers([senderId, receiverId]);
 
+    const senderUser = users.get(senderId);
+    const receiverUser = users.get(receiverId);
+
     const mapped = mapMessage(
       message,
-      users.get(message.sender_id),
-      users.get(message.receiver_id)
+      senderUser,
+      receiverUser
     );
 
     const io = req.app.get('io');
@@ -98,13 +101,28 @@ exports.sendMessage = async (req, res) => {
       io.to(senderId).emit('messageSent', mapped);
     }
 
-    const receiverUser = users.get(receiverId);
-
-    if (receiverUser?.fcm_token) {
-      await sendPushNotification(receiverUser.fcm_token, {
-        title: 'New Message',
-        body: content || 'Media message'
+    try {
+      await sendToUser(receiverId, {
+        title: senderUser?.name || 'New message',
+        body:
+          content ||
+          (finalType === 'image'
+            ? 'Sent you an image'
+            : finalType === 'video'
+              ? 'Sent you a video'
+              : finalType === 'audio'
+                ? 'Sent you an audio'
+                : 'Sent you a message'),
+        data: {
+          type: 'message',
+          senderId: String(senderId),
+          messageId: String(message.id),
+          receiverId: String(receiverId)
+        },
+        channelId: 'pvchat_messages'
       });
+    } catch (pushError) {
+      console.error('Message push notification error:', pushError);
     }
 
     return res.status(201).json({

@@ -21,6 +21,7 @@
   "author": "DigitalWave",
   "license": "MIT",
   "dependencies": {
+    "firebase-admin": "^13.9.0",
     "zustand": "^5.0.13"
   }
 }
