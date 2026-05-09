@@ -1,10 +1,14 @@
 const bcrypt = require('bcryptjs');
+const supabase = require('../config/supabase');
 
-async function initializeAdmin(supabase) {
+async function initializeAdmin() {
   try {
     const email = process.env.ADMIN_EMAIL;
     const password = process.env.ADMIN_PASSWORD;
     const name = process.env.ADMIN_NAME || 'Super Admin';
+
+    console.log('ADMIN_EMAIL exists:', !!email);
+    console.log('ADMIN_PASSWORD exists:', !!password);
 
     if (!email || !password) {
       console.warn('⚠️ ADMIN_EMAIL or ADMIN_PASSWORD missing. Skipping admin auto-create.');
@@ -52,4 +56,4 @@ async function initializeAdmin(supabase) {
   }
 }
 
-module.exports = initializeAdmin;
+module.exports = { initializeAdmin };
