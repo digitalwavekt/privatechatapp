@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
-const auth = require('../middleware/auth');
+
+const authModule = require('../middleware/auth');
+const auth = authModule.auth || authModule.protect || authModule.verifyToken || authModule;
 
 const getUserId = (req) => {
     return req.user?.userId || req.user?.id || req.user?._id;
