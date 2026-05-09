@@ -2,7 +2,7 @@ buildscript {
     ext {
         minSdkVersion = 24
         compileSdkVersion = 35
-targetSdkVersion = 35
+        targetSdkVersion = 35
         kotlin_version = '1.8.22'
     }
 
@@ -12,7 +12,7 @@ targetSdkVersion = 35
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -21,12 +21,26 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // FIXED: flatDir replaced with proper maven local repo to avoid meta-data warning
+        maven {
+            url = uri("${rootProject.projectDir}/../capacitor-cordova-android-plugins/src/main/libs")
+            content {
+                includeGroupByRegex ".*"
+            }
+        }
+        maven {
+            url = uri("${rootProject.projectDir}/app/libs")
+            content {
+                includeGroupByRegex ".*"
+            }
+        }
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
 configurations.all {
     resolutionStrategy {
         force 'androidx.core:core:1.12.0'
@@ -34,6 +48,7 @@ configurations.all {
         force 'androidx.activity:activity:1.8.2'
     }
 }
+
 subprojects {
     configurations.configureEach {
         resolutionStrategy {
