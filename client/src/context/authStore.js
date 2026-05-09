@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export const useAuthStore = create(
   persist(
@@ -9,24 +9,28 @@ export const useAuthStore = create(
       refreshToken: null,
 
       setAuth: (user, token, refreshToken) => {
-        set({ user, token, refreshToken });
+        set({
+          user,
+          token,
+          refreshToken: refreshToken || null,
+        });
       },
 
       updateUser: (updates) => {
         set((state) => ({
-          user: { ...state.user, ...updates }
+          user: state.user ? { ...state.user, ...updates } : updates,
         }));
       },
 
       logout: () => {
         set({ user: null, token: null, refreshToken: null });
-        localStorage.removeItem('pvchat-auth');
       },
 
       getToken: () => get().token,
     }),
     {
       name: 'pvchat-auth',
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );

@@ -41,8 +41,12 @@ const Login = () => {
 
       setAuth(data.user, token, data.refreshToken || null);
 
+
       toast.success('Login successful!');
-      navigate('/');
+
+      setTimeout(() => {
+        window.location.replace('/');
+      }, 300);
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
