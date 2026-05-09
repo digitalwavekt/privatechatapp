@@ -4,6 +4,8 @@ import { FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVide
 import AgoraRTC from 'agora-rtc-sdk-ng';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { PermissionsAndroid } from 'react-native';
 
 const CallScreen = () => {
   const { callId } = useParams();
@@ -78,7 +80,18 @@ const CallScreen = () => {
       }
 
       // Create local tracks
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      if (navigator.mediaDevices) {
+        await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+      }
+
+      const [audioTrack, videoTrack] =
+        await AgoraRTC.createMicrophoneAndCameraTracks();
+
+
+
 
       setLocalAudioTrack(audioTrack);
       setLocalVideoTrack(videoTrack);
