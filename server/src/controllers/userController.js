@@ -42,26 +42,84 @@ exports.searchByPhone = async (req, res) => {
 
 exports.getContacts = async (req, res) => {
   try {
-    const { data: rows, error } = await supabase.from('contacts').select('contact_id').eq('user_id', req.user.userId);
+    const { data: rows, error } = await supabase
+      .from('contacts')
+      .select('contact_id')
+      .eq('user_id', req.user.userId);
+
     if (error) throw error;
-    const ids = (rows || []).map(r => r.contact_id);
-    if (!ids.length) return res.json([]);
-    const { data: users, error: usersError } = await supabase.from('profiles').select('*').in('id', ids);
+
+    const ids = (rows || []).map((r) => r.contact_id).filter(Boolean);
+
+    if (!ids.length) {
+      return res.json({
+        success: true,
+        contacts: []
+      });
+    }
+
+    const { data: users, error: usersError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', ids);
+
     if (usersError) throw usersError;
-    res.json((users || []).map(publicUser));
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    res.json({
+      success: true,
+      contacts: (users || []).map(publicUser)
+    });
+  } catch (error) {
+    console.error('Get contacts error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.addContact = async (req, res) => {
   try {
-    const { contactId } = req.body;
-    if (!contactId) return res.status(400).json({ message: 'contactId required' });
-    if (contactId === req.user.userId) return res.status(400).json({ message: 'Cannot add yourself' });
+    const contactId = req.body.contactId || req.body.userId;
 
-    const { error } = await supabase.from('contacts').upsert({ user_id: req.user.userId, contact_id: contactId }, { onConflict: 'user_id,contact_id' });
+    if (!contactId) {
+      return res.status(400).json({ success: false, message: 'contactId/userId required' });
+    }
+
+    if (contactId === req.user.userId) {
+      return res.status(400).json({ success: false, message: 'Cannot add yourself' });
+    }
+
+    const { data: contactUser, error: userError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', contactId)
+      .maybeSingle();
+
+    if (userError) throw userError;
+
+    if (!contactUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { error } = await supabase
+      .from('contacts')
+      .upsert(
+        {
+          user_id: req.user.userId,
+          contact_id: contactId
+        },
+        { onConflict: 'user_id,contact_id' }
+      );
+
     if (error) throw error;
-    res.json({ message: 'Contact added successfully' });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    res.json({
+      success: true,
+      message: 'Contact added successfully',
+      contact: publicUser(contactUser)
+    });
+  } catch (error) {
+    console.error('Add contact error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.blockUser = async (req, res) => {

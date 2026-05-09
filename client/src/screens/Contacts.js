@@ -16,9 +16,19 @@ const Contacts = () => {
   const loadContacts = async () => {
     try {
       const { data } = await api.get('/users/contacts');
-      setContacts(data);
+
+      const contactsData = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.contacts)
+          ? data.contacts
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
+
+      setContacts(contactsData);
     } catch (error) {
-      toast.error('Failed to load contacts');
+      toast.error(error.response?.data?.message || 'Failed to load contacts');
+      setContacts([]);
     } finally {
       setLoading(false);
     }
