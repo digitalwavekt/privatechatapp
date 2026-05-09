@@ -39,14 +39,16 @@ const Login = () => {
         throw new Error('Token missing');
       }
 
-      setAuth(data.user, token, data.refreshToken || null);
 
+
+
+      setAuth(data.user, token, data.refreshToken || null);
 
       toast.success('Login successful!');
 
       setTimeout(() => {
         window.location.replace('/');
-      }, 300);
+      }, 800);
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
