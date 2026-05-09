@@ -13,10 +13,24 @@ import { format } from 'date-fns';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+
+const safeFormat = (value, pattern) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  try {
+    return format(date, pattern);
+  } catch {
+    return '-';
+  }
+};
+
 const normalizeArray = (data, key) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.[key])) return data[key];
   if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
   return [];
 };
 
@@ -101,16 +115,16 @@ const UserChats = () => {
     return senderId === userId ? msg?.receiver : msg?.sender;
   };
 
-  const textCount = safeMessages.filter(
+  const textCount = normalizeArray(safeMessages).filter(
     (m) => m?.type === 'text'
   ).length;
 
-  const mediaCount = safeMessages.filter(
+  const mediaCount = normalizeArray(safeMessages).filter(
     (m) => ['image', 'video'].includes(m?.type)
   ).length;
 
   const conversationCount = new Set(
-    safeMessages
+    normalizeArray(safeMessages)
       .map((m) => getOtherUser(m)?._id)
       .filter(Boolean)
   ).size;
@@ -196,7 +210,7 @@ const UserChats = () => {
           </div>
         ) : (
           <div className="space-y-3 max-h-[600px] overflow-y-auto">
-            {safeMessages.map((msg, index) => {
+            {normalizeArray(safeMessages).map((msg, index) => {
               const otherUser = getOtherUser(msg);
 
               const senderId =
@@ -238,10 +252,7 @@ const UserChats = () => {
 
                     <span className="text-xs text-pvchat-gray">
                       {msg?.createdAt
-                        ? format(
-                          new Date(msg.createdAt),
-                          'MMM dd, HH:mm'
-                        )
+                        ? safeFormat(msg?.createdAt, 'MMM dd, HH:mm')
                         : '-'}
                     </span>
                   </div>

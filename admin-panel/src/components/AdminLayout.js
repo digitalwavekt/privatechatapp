@@ -65,11 +65,11 @@ const AdminLayout = () => {
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-pvchat-blue flex items-center justify-center">
               <span className="text-sm font-bold text-white">
-                {user?.name?.charAt(0)?.toUpperCase()}
+                {(user?.name || user?.email || 'A')?.charAt(0)?.toUpperCase()}
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-white">{user?.name}</p>
+              <p className="text-sm font-medium text-white">{user?.name || user?.email || 'Admin'}</p>
               <p className="text-xs text-pvchat-gray">Administrator</p>
             </div>
           </div>

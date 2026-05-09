@@ -25,11 +25,11 @@ const AdminLogin = () => {
         password
       });
 
-      console.log('ADMIN LOGIN RESPONSE:', data);
+      const payload = data?.data || data || {};
+      const token = payload.token || payload.accessToken;
+      const adminUser = payload.user || payload.admin || null;
 
-      const token = data.token || data.accessToken;
-
-      if (!data.user || !['admin', 'super_admin'].includes(data.user.role)) {
+      if (!adminUser || !['admin', 'super_admin'].includes(adminUser.role)) {
         toast.error('Admin access only');
         return;
       }
@@ -39,7 +39,7 @@ const AdminLogin = () => {
         return;
       }
 
-      setAuth(data.user, token);
+      setAuth(adminUser, token, payload.refreshToken || null);
 
       toast.success('Welcome Admin!');
       navigate('/', { replace: true });

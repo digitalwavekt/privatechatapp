@@ -107,9 +107,8 @@ const Calls = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm transition-all capitalize ${
-                activeTab === tab ? 'bg-pvchat-blue text-white' : 'text-pvchat-gray hover:text-white'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm transition-all capitalize ${activeTab === tab ? 'bg-pvchat-blue text-white' : 'text-pvchat-gray hover:text-white'
+                }`}
             >
               {tab}
             </button>

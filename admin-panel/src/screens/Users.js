@@ -5,6 +5,22 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+const normalizeArray = (data, key) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
+
+const safeDate = (value, withTime = false) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return withTime ? date.toLocaleString() : date.toLocaleDateString();
+};
+
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -24,11 +40,9 @@ const Users = () => {
       if (statusFilter !== 'all') params.status = statusFilter;
       if (searchQuery) params.search = searchQuery;
 
-      const { data } = await api.get('/admin/users');
+      const { data } = await api.get('/admin/users', { params });
 
-      const usersList = Array.isArray(data)
-        ? data
-        : data.users || [];
+      const usersList = normalizeArray(data, 'users');
 
       setUsers(usersList);
     } catch (error) {
@@ -93,7 +107,7 @@ const Users = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">All Users</h1>
         <div className="flex items-center gap-2">
-          <span className="text-pvchat-gray text-sm">Total: {users.length}</span>
+          <span className="text-pvchat-gray text-sm">Total: {normalizeArray(users).length}</span>
         </div>
       </div>
 
@@ -137,7 +151,7 @@ const Users = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-pvchat-blue border-t-transparent rounded-full" />
           </div>
-        ) : users.length === 0 ? (
+        ) : normalizeArray(users).length === 0 ? (
           <div className="text-center py-12">
             <FaUsers className="text-4xl text-pvchat-gray mx-auto mb-4" />
             <p className="text-pvchat-gray">No users found</p>
@@ -155,18 +169,18 @@ const Users = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user._id}>
+              {normalizeArray(users).map((user) => (
+                <tr key={user?._id || user?.id || user?.email}>
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-pvchat-blue flex items-center justify-center">
                         <span className="text-sm font-bold text-white">
-                          {user.name?.charAt(0)?.toUpperCase()}
+                          {(user?.name || user?.email || 'U')?.charAt(0)?.toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-white">{user.name}</p>
-                        <p className="text-xs text-pvchat-gray">{user.role}</p>
+                        <p className="text-sm font-medium text-white">{user?.name || 'Unknown User'}</p>
+                        <p className="text-xs text-pvchat-gray">{user?.role || 'user'}</p>
                       </div>
                     </div>
                   </td>
@@ -174,49 +188,49 @@ const Users = () => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-sm">
                         <FaEnvelope className="text-pvchat-gray text-xs" />
-                        <span>{user.email}</span>
+                        <span>{user?.email || '-'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <FaPhone className="text-pvchat-gray text-xs" />
-                        <span>{user.phone}</span>
+                        <span>{user?.phone || '-'}</span>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span className={`status-${user.status}`}>
-                      {user.status}
+                    <span className={`status-${user?.status}`}>
+                      {user?.status}
                     </span>
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
-                      <span className="text-sm">{user.isOnline ? 'Online' : 'Offline'}</span>
+                      <div className={`w-2 h-2 rounded-full ${user?.isOnline ? 'bg-green-500' : 'bg-gray-500'}`} />
+                      <span className="text-sm">{user?.isOnline ? 'Online' : 'Offline'}</span>
                     </div>
                   </td>
                   <td className="text-sm">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {safeDate(user?.createdAt)}
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => viewChats(user._id)}
+                        onClick={() => viewChats(user?._id || user?.id)}
                         className="p-2 text-pvchat-blue hover:bg-pvchat-blue/10 rounded-lg transition-all"
                         title="View Chats"
                       >
                         <FaComments />
                       </button>
-                      {user.status !== 'blocked' && user.status !== 'deleted' && (
+                      {user?.status !== 'blocked' && user?.status !== 'deleted' && (
                         <button
-                          onClick={() => openBlockModal(user._id)}
+                          onClick={() => openBlockModal(user?._id || user?.id)}
                           className="p-2 text-pvchat-warning hover:bg-yellow-500/10 rounded-lg transition-all"
                           title="Block User"
                         >
                           <FaBan />
                         </button>
                       )}
-                      {user.status !== 'deleted' && (
+                      {user?.status !== 'deleted' && (
                         <button
-                          onClick={() => openDeleteModal(user._id)}
+                          onClick={() => openDeleteModal(user?._id || user?.id)}
                           className="p-2 text-pvchat-danger hover:bg-red-500/10 rounded-lg transition-all"
                           title="Force Delete App"
                         >

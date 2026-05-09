@@ -3,6 +3,22 @@ import { FaCheck, FaTimes, FaEnvelope, FaPhone, FaCamera } from 'react-icons/fa'
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+const normalizeArray = (data, key) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
+
+const safeDate = (value, withTime = false) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return withTime ? date.toLocaleString() : date.toLocaleDateString();
+};
+
 const PendingApprovals = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +33,7 @@ const PendingApprovals = () => {
     try {
       const { data } = await api.get('/admin/pending-users');
 
-      const usersList = Array.isArray(data)
-        ? data
-        : data.users || [];
+      const usersList = normalizeArray(data, 'users');
 
       setPendingUsers(usersList);
     } catch (error) {
@@ -33,7 +47,7 @@ const PendingApprovals = () => {
     try {
       await api.post(`/admin/approve/${userId}`);
       toast.success('User approved successfully');
-      setPendingUsers(pendingUsers.filter(u => u._id !== userId));
+      setPendingUsers(normalizeArray(pendingUsers).filter(u => u?._id !== userId));
       setShowDetail(false);
     } catch (error) {
       toast.error('Failed to approve user');
@@ -44,7 +58,7 @@ const PendingApprovals = () => {
     try {
       await api.post(`/admin/block/${userId}`, { reason: 'Rejected by admin' });
       toast.success('User rejected');
-      setPendingUsers(pendingUsers.filter(u => u._id !== userId));
+      setPendingUsers(normalizeArray(pendingUsers).filter(u => u?._id !== userId));
       setShowDetail(false);
     } catch (error) {
       toast.error('Failed to reject user');
@@ -63,7 +77,7 @@ const PendingApprovals = () => {
         <h1 className="text-2xl font-bold text-white">Pending Approvals</h1>
         <div className="flex items-center gap-2">
           <span className="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-sm">
-            {pendingUsers.length} pending
+            {normalizeArray(pendingUsers).length} pending
           </span>
         </div>
       </div>
@@ -73,7 +87,7 @@ const PendingApprovals = () => {
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-pvchat-blue border-t-transparent rounded-full" />
         </div>
-      ) : pendingUsers.length === 0 ? (
+      ) : normalizeArray(pendingUsers).length === 0 ? (
         <div className="admin-card text-center py-12">
           <FaCheck className="text-4xl text-green-400 mx-auto mb-4" />
           <p className="text-pvchat-gray">No pending approvals</p>
@@ -81,18 +95,18 @@ const PendingApprovals = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {pendingUsers.map((user) => (
-            <div key={user._id} className="admin-card hover:border-pvchat-blue/30 transition-all">
+          {normalizeArray(pendingUsers).map((user) => (
+            <div key={user?._id || user?.id || user?.email} className="admin-card hover:border-pvchat-blue/30 transition-all">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-pvchat-blue flex items-center justify-center">
                     <span className="text-lg font-bold text-white">
-                      {user.name?.charAt(0)?.toUpperCase()}
+                      {(user?.name || user?.email || 'U')?.charAt(0)?.toUpperCase()}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-white">{user.name}</h3>
-                    <p className="text-xs text-pvchat-gray">{user.email}</p>
+                    <h3 className="text-sm font-medium text-white">{user?.name || 'Unknown User'}</h3>
+                    <p className="text-xs text-pvchat-gray">{user?.email || '-'}</p>
                   </div>
                 </div>
                 <span className="status-pending">Pending</span>
@@ -101,15 +115,15 @@ const PendingApprovals = () => {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center gap-2 text-sm text-pvchat-gray">
                   <FaPhone className="text-xs" />
-                  <span>{user.phone}</span>
+                  <span>{user?.phone || '-'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-pvchat-gray">
                   <FaEnvelope className="text-xs" />
-                  <span>{user.email}</span>
+                  <span>{user?.email || '-'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-pvchat-gray">
                   <FaCamera className="text-xs" />
-                  <span>{user.livePhoto ? 'Live photo captured' : 'No live photo'}</span>
+                  <span>{user?.livePhoto ? 'Live photo captured' : 'No live photo'}</span>
                 </div>
               </div>
 
@@ -142,12 +156,12 @@ const PendingApprovals = () => {
               </div>
 
               {/* Live Photo */}
-              {selectedUser.livePhoto && (
+              {selectedUser?.livePhoto && (
                 <div className="mb-6">
                   <label className="block text-sm text-pvchat-gray mb-2">Live Photo</label>
                   <div className="rounded-xl overflow-hidden bg-pvchat-dark">
                     <img
-                      src={selectedUser.livePhoto}
+                      src={selectedUser?.livePhoto}
                       alt="Live verification"
                       className="w-full h-64 object-cover"
                     />
@@ -159,15 +173,15 @@ const PendingApprovals = () => {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm text-pvchat-gray mb-1">Full Name</label>
-                  <p className="text-white font-medium">{selectedUser.name}</p>
+                  <p className="text-white font-medium">{selectedUser?.name || 'Unknown User'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-pvchat-gray mb-1">Email</label>
-                  <p className="text-white">{selectedUser.email}</p>
+                  <p className="text-white">{selectedUser?.email || '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-pvchat-gray mb-1">Phone</label>
-                  <p className="text-white">{selectedUser.phone}</p>
+                  <p className="text-white">{selectedUser?.phone || '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm text-pvchat-gray mb-1">Device Info</label>
@@ -179,21 +193,21 @@ const PendingApprovals = () => {
                 </div>
                 <div>
                   <label className="block text-sm text-pvchat-gray mb-1">Registered</label>
-                  <p className="text-white">{new Date(selectedUser.createdAt).toLocaleString()}</p>
+                  <p className="text-white">{safeDate(selectedUser?.createdAt, true)}</p>
                 </div>
               </div>
 
               {/* Actions */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => rejectUser(selectedUser._id)}
+                  onClick={() => rejectUser(selectedUser?._id || selectedUser?.id)}
                   className="flex-1 py-3 rounded-xl bg-pvchat-dark text-pvchat-danger hover:bg-red-500/10 transition-all flex items-center justify-center gap-2"
                 >
                   <FaTimes />
                   Reject
                 </button>
                 <button
-                  onClick={() => approveUser(selectedUser._id)}
+                  onClick={() => approveUser(selectedUser?._id || selectedUser?.id)}
                   className="flex-1 py-3 rounded-xl bg-pvchat-success text-white hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                 >
                   <FaCheck />

@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { FaHistory, FaUserCheck, FaUserSlash, FaTrash, FaShieldAlt } from 'react-icons/fa';
-import { format } from 'date-fns';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+
+const normalizeArray = (data, key) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.[key])) return data[key];
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
+
+const safeDate = (value, withTime = false) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return withTime ? date.toLocaleString() : date.toLocaleDateString();
+};
 
 const Activities = () => {
   const [activities, setActivities] = useState([]);
@@ -17,9 +32,7 @@ const Activities = () => {
     try {
       const { data } = await api.get('/admin/activities');
 
-      const activitiesList = Array.isArray(data)
-        ? data
-        : data.activities || [];
+      const activitiesList = normalizeArray(data, 'activities');
 
       setActivities(activitiesList);
     } catch (error) {
@@ -49,7 +62,7 @@ const Activities = () => {
 
   const filteredActivities = filter === 'all'
     ? activities
-    : activities.filter(a => a.action === filter);
+    : normalizeArray(activities).filter(a => a?.action === filter);
 
   const actionTypes = ['all', 'approve_user', 'block_user', 'force_delete_app'];
 
@@ -60,7 +73,7 @@ const Activities = () => {
         <h1 className="text-2xl font-bold text-white">Activity Log</h1>
         <div className="flex items-center gap-2">
           <FaHistory className="text-pvchat-gray" />
-          <span className="text-pvchat-gray text-sm">{activities.length} total activities</span>
+          <span className="text-pvchat-gray text-sm">{normalizeArray(activities).length} total activities</span>
         </div>
       </div>
 
@@ -86,14 +99,14 @@ const Activities = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-pvchat-blue border-t-transparent rounded-full" />
           </div>
-        ) : filteredActivities.length === 0 ? (
+        ) : normalizeArray(filteredActivities).length === 0 ? (
           <div className="text-center py-12">
             <FaHistory className="text-4xl text-pvchat-gray mx-auto mb-4" />
             <p className="text-pvchat-gray">No activities found</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-[600px] overflow-y-auto">
-            {filteredActivities.map((activity, index) => (
+            {normalizeArray(filteredActivities).map((activity, index) => (
               <div
                 key={activity._id || index}
                 className="bg-pvchat-dark rounded-xl p-4 hover:bg-pvchat-dark/80 transition-all"
@@ -108,7 +121,7 @@ const Activities = () => {
                         {getActionLabel(activity.action)}
                       </h4>
                       <span className="text-xs text-pvchat-gray">
-                        {format(new Date(activity.createdAt), 'MMM dd, yyyy HH:mm:ss')}
+                        {safeDate(activity?.createdAt, true)}
                       </span>
                     </div>
 

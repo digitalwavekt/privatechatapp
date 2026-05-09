@@ -1,29 +1,41 @@
 import axios from 'axios';
 import { useAuthStore } from '../context/authStore';
 
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_BACKEND_URL ||
+  'https://privachat-backend.onrender.com/api';
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState()?.token;
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+    const status = error?.response?.status;
+    const currentPath = window.location.pathname;
+
+    if (status === 401 && currentPath !== '/login') {
+      useAuthStore.getState()?.logout?.();
+      window.location.replace('/login');
     }
 
     return Promise.reject(error);
