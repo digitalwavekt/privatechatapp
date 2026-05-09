@@ -56,10 +56,24 @@ const CallScreen = () => {
         });
 
         // Join channel with returned token
-        await client.join(process.env.REACT_APP_AGORA_APP_ID, data.channelName, data.token, null);
+        const appId = data.appId;
+        const channel = data.channelName;
+        const agoraToken = data.token || data.agoraToken;
+
+        if (!appId || !channel || !agoraToken) {
+          throw new Error('Missing Agora appId/channel/token');
+        }
+
+        await client.join(appId, channel, agoraToken, null);
       } else {
         // Join existing call
-        await client.join(process.env.REACT_APP_AGORA_APP_ID, channelName, token, null);
+        const appId = searchParams.get('appId') || process.env.REACT_APP_AGORA_APP_ID;
+
+        if (!appId || !channelName || !token) {
+          throw new Error('Missing Agora appId/channel/token');
+        }
+
+        await client.join(appId, channelName, token, null);
         await api.post(`/calls/accept/${callId}`);
       }
 
@@ -167,7 +181,7 @@ const CallScreen = () => {
             <div className="w-full h-full">
               {remoteUsers.map(user => (
                 <div key={user.uid} className="w-full h-full">
-                  <video 
+                  <video
                     ref={ref => user.videoTrack?.play(ref)}
                     className="w-full h-full object-cover"
                   />
@@ -212,9 +226,8 @@ const CallScreen = () => {
       <div className="h-20 bg-pvchat-dark border-t border-pvchat-gray-dark/30 flex items-center justify-center gap-6">
         <button
           onClick={toggleMute}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-            isMuted ? 'bg-pvchat-danger text-white' : 'bg-pvchat-card text-pvchat-gray hover:text-white'
-          }`}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-pvchat-danger text-white' : 'bg-pvchat-card text-pvchat-gray hover:text-white'
+            }`}
         >
           {isMuted ? <FaMicrophoneSlash /> : <FaMicrophone />}
         </button>
@@ -222,9 +235,8 @@ const CallScreen = () => {
         {type === 'video' && (
           <button
             onClick={toggleVideo}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-              isVideoOff ? 'bg-pvchat-danger text-white' : 'bg-pvchat-card text-pvchat-gray hover:text-white'
-            }`}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isVideoOff ? 'bg-pvchat-danger text-white' : 'bg-pvchat-card text-pvchat-gray hover:text-white'
+              }`}
           >
             {isVideoOff ? <FaVideoSlash /> : <FaVideo />}
           </button>
