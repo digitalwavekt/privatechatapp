@@ -2,10 +2,15 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import api from './api';
 
+let initialized = false;
+
 export const initPushNotifications = async () => {
     try {
+        if (initialized) return;
+        initialized = true;
+
         if (!Capacitor.isNativePlatform()) {
-            console.log('Push notifications skipped: not native platform');
+            console.log('Push skipped: not native platform');
             return;
         }
 
@@ -16,15 +21,19 @@ export const initPushNotifications = async () => {
             return;
         }
 
-        await PushNotifications.register();
+        await PushNotifications.removeAllListeners();
 
         PushNotifications.addListener('registration', async (token) => {
             console.log('FCM token:', token.value);
 
-            await api.post('/notifications/register-token', {
-                token: token.value,
-                platform: Capacitor.getPlatform()
-            });
+            try {
+                await api.post('/notifications/register-token', {
+                    token: token.value,
+                    platform: Capacitor.getPlatform()
+                });
+            } catch (err) {
+                console.error('Token save failed:', err);
+            }
         });
 
         PushNotifications.addListener('registrationError', (error) => {
@@ -46,6 +55,8 @@ export const initPushNotifications = async () => {
                 window.location.href = `/call/${data.callId}?type=${data.callType || 'audio'}&channel=${data.channelName || ''}&token=${data.token || ''}&appId=${data.appId || ''}`;
             }
         });
+
+        await PushNotifications.register();
     } catch (error) {
         console.error('Push init failed:', error);
     }

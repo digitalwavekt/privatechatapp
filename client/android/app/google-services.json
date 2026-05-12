@@ -1,0 +1,29 @@
+{
+    "project_info": {
+        "project_number": "1095352762009",
+        "project_id": "chat-1f8f7",
+        "storage_bucket": "chat-1f8f7.firebasestorage.app"
+    },
+    "client": [
+        {
+            "client_info": {
+                "mobilesdk_app_id": "1:1095352762009:android:5e51737fb8bbf63cfd4208",
+                "android_client_info": {
+                    "package_name": "com.digitalwave.pvchat"
+                }
+            },
+            "oauth_client": [],
+            "api_key": [
+                {
+                    "current_key": "AIzaSyBEv4X7jM5OrDpyy7c4tJkT7NStas6cjRQ"
+                }
+            ],
+            "services": {
+                "appinvite_service": {
+                    "other_platform_oauth_client": []
+                }
+            }
+        }
+    ],
+    "configuration_version": "1"
+}
