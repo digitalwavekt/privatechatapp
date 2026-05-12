@@ -2,6 +2,7 @@ const supabase = require('../config/supabase');
 const { mapMessage, publicUser } = require('../utils/mapper');
 const { sendToUser } = require('../services/notificationService');
 
+
 const getUserId = (req) => {
   return req.user?.userId || req.user?.id || req.user?._id;
 };
